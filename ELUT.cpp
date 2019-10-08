@@ -9,6 +9,7 @@
 #include <time.h>
 #include <string>
 #include <random>
+#include <iostream>
 ///////malloc memory
 int ****D4i(int r, int c, int p, int s) // malloc 2d array of Double
 {
@@ -99,7 +100,6 @@ void Quantize(int *index, double in, double min, double max, double interval, in
 	if ((*index) == 2000)
 	{
 		printf("wrong message 3");
-		int wrong_msg3 = 1;
 	}
 }
 
@@ -109,13 +109,12 @@ int main(int argc, char *argv[])
 	//Definition area/////////////////////////////////////////////////////////////////////
 	FILE *myfile;
 	FILE *pfile;
-	FILE *pffilecode;
 	int vari_num, check_num, vari_max, check_max, edge_num;
 	int summ;
 	int cor, totalit, sumiteration, ndec, iteration2, sumBER;
 	int max_iter;
 	int timeseed, timemod;
-	int i, j, k, h, count;
+	int i, j, k,  count;
 	int dummy1;
 	int dummy2;
 	int T;
@@ -125,21 +124,18 @@ int main(int argc, char *argv[])
 	int SNRit;
 	int Fir, Sec;
 	int cur_dv, cur_dc;
-	int cur_page;
 	int flag;
 	int snr_len;
-	int *satisfy;
 	int wro;
-	int dummy;
 	int parity_check_sum;
 	int parity_check_flag;
 
 	char savee[70];
 	char saveecode[70];
 	char lutname[70];
+	char quanname[70];
 
 	double esnodb, esno, sigma2, sigma;
-	double r1, r2;
 	double rate;
 
 	int *lfindv;
@@ -153,7 +149,6 @@ int main(int argc, char *argv[])
 	double *rx;
 	int *quan;
 	int *rx_quan;
-	int *codeword;
 	int *tbits;
 	int ****vari_lt;
 	int ****check_lt;
@@ -161,16 +156,13 @@ int main(int argc, char *argv[])
 	int *final_bit;
 	int ****ext_vari_lt;
 	int ****ext_check_lt;
-	int *edge_msg;
 	int *rx_channel_index;
 	int *p;
 	int *vari_msg_list;
 	int *check_msg_list;
-	int ***check_alt, ***vari_alt;
-	int **punc_alt;
 	int eff_check_deg;
 	int effect_deg;
-	int numpunc = 0;
+	int numpunc = 129;
 	int uni_part = 2000;
 	double quan_max = 2 + (double)2 / 2000;
 	double quan_min = -2 - (double)2 / 2000;
@@ -181,17 +173,15 @@ int main(int argc, char *argv[])
 	std::uniform_real_distribution<double> dist{0,1};
 
 	//Matrix Information/////////////////////////////////////////////////////////////
-	int err;
-	myfile = fopen("80211_irr_648_1296.txt", "r");
+	myfile = fopen("K_1032_TCOM_3_43_ACEPEG_6_12_Chinn.txt", "r");
 	fscanf(myfile, "%d", &vari_num);
 	fscanf(myfile, "%d", &check_num);
 	fscanf(myfile, "%d", &edge_num);
 	fscanf(myfile, "%d", &vari_max);
 	fscanf(myfile, "%d", &check_max);
 	//rate
-	double rate1 = (double)(check_num - numpunc) / (double)(vari_num - numpunc);
 	rate = 1.0 - (double)(check_num - numpunc) / (double)(vari_num - numpunc);
-	printf("%f", rate);
+	printf("%f\n", rate);
 	//Continue Reading H
 	v = (int *)malloc(edge_num * sizeof(int));
 	c = (int *)malloc(edge_num * sizeof(int));
@@ -253,6 +243,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+	std::cout<<"finished parity check matrix...."<<std::endl;
 	/////////////////////LookupTable Information//////////////////////////////////
 	//Line1 : cardinality
 	//Line2 : Max Iteration
@@ -263,7 +254,8 @@ int main(int argc, char *argv[])
 	//Check Alignment Table
 	//Variable node Alignment Table
 	//Puncturing Alignment Table
-	sprintf(lutname, "LT-Chinn067-T16-%s", argv[1]);
+	sprintf(lutname, "LT-Chinn-T16-%s.txt", argv[1]);
+	std::cout<<"LUT: "<<lutname<<std::endl;
 	myfile = fopen(lutname, "r");
 	fscanf(myfile, "%d", &T);
 	fscanf(myfile, "%d", &max_iter);
@@ -273,9 +265,6 @@ int main(int argc, char *argv[])
 	ext_check_lt = D4i(T, T, check_max, max_iter);
 	vari_lt = D4i(T, T, vari_max, max_iter);
 	ext_vari_lt = D4i(T, T, vari_max, max_iter);
-	vari_alt = D3i(vari_max, T, max_iter);
-	check_alt = D3i(check_max, T, max_iter);
-	punc_alt = D2i(max_iter, T);
 	vari_msg_list = D1i(vari_max + 1);
 	check_msg_list = D1i(check_max);
 	////Check LT......
@@ -344,8 +333,10 @@ int main(int argc, char *argv[])
 		}
 	}
 	fclose(myfile);
+	std::cout<<"finished LUT reading...."<<std::endl;
 	////////Read Qunatization Information//////////////////////////////////////////
-	myfile = fopen("Channel_Quantization.txt", "r");
+	sprintf(quanname,"Channel_Quantization_%s.txt",argv[1]);
+	myfile = fopen(quanname, "r");
 	fscanf(myfile, "%d", &total_quan);
 	quan = D1i(total_quan);
 	for (i = 0; i < total_quan; i++)
@@ -354,6 +345,7 @@ int main(int argc, char *argv[])
 		//printf("%d \n", quan[index][i]);
 	}
 	fclose(myfile);
+	std::cout<<"finished Quantization Reading...."<<std::endl;
 	/////////Some Others///////////////////////////////////////////////////////////
 	timeseed = time(NULL) + 1000;
 	srand(timeseed);
@@ -365,11 +357,9 @@ int main(int argc, char *argv[])
 	msg_chec = D1i(edge_num);
 	rx_channel_index = D1i(vari_num);
 	tbits = D1i(vari_num);
-	codeword = D1i(vari_num);
 	final_quan = D1i(vari_num);
 	final_bit = D1i(vari_num);
 	p = D1i(edge_num);
-	satisfy = D1i(check_num);
 	////////Set  SNR/////////////////////////////////////////////////////////////
 	double esnodbvec[1] = {std::stod(argv[2])};
 	snr_len = sizeof(esnodbvec) / sizeof(esnodbvec[0]);
@@ -387,7 +377,7 @@ int main(int argc, char *argv[])
 		sigma = (double)sqrt(sigma2);
 		//prepare file
 		sprintf(savee, "SimulationResult_R%.2f_D%s_I%s.txt", rate, argv[1], argv[4]);
-		sprintf(saveecode, "WrongCodeword_R%.2f_D%s_I%s.txt", rate, argv[1], argv[4]); // Codeword
+		sprintf(saveecode, "WrongCodeword_R%.2f_D%s_I%d.txt", rate, argv[1], timemod); // Codeword
 																								 //initial counting parameters
 		cor = 0;																				 // Number of correct
 		wro = 0;
@@ -402,8 +392,6 @@ int main(int argc, char *argv[])
 			for (i = (1 * numpunc); i < vari_num; i++)
 			{
 				//add noise for non puncture node
-				r1 = ((double)rand() + 1.0) / ((double)RAND_MAX + 1.0);
-				r2 = ((double)rand() + 1.0) / ((double)RAND_MAX + 1.0);
 				rx[i] = 1.0 - 2.0 * tbits[i] + sigma * (sqrt(-2.0 * log(dist(gen)))) * (cos(2 * 3.14159265359 * dist(gen)));
 				Quantize(&rx_channel_index[i], rx[i], quan_min, quan_max, interval, uni_part);
 				rx_quan[i] = quan[rx_channel_index[i]];
