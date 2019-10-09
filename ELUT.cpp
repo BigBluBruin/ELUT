@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 	int cor, totalit, sumiteration, ndec, iteration2, sumBER;
 	int max_iter;
 	int timeseed, timemod;
-	int i, j, k,  count;
+	int i, j, k, count;
 	int dummy1;
 	int dummy2;
 	int T;
@@ -154,6 +154,7 @@ int main(int argc, char *argv[])
 	int ****check_lt;
 	int *final_quan;
 	int *final_bit;
+	int **punc_alt;
 	int ****ext_vari_lt;
 	int ****ext_check_lt;
 	int *rx_channel_index;
@@ -170,7 +171,7 @@ int main(int argc, char *argv[])
 
 	std::random_device rd;
 	std::mt19937 gen{rd()};
-	std::uniform_real_distribution<double> dist{0,1};
+	std::uniform_real_distribution<double> dist{0, 1};
 
 	//Matrix Information/////////////////////////////////////////////////////////////
 	myfile = fopen("K_1032_TCOM_3_43_ACEPEG_6_12_Chinn.txt", "r");
@@ -243,7 +244,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-	std::cout<<"finished parity check matrix...."<<std::endl;
+	std::cout << "finished parity check matrix...." << std::endl;
 	/////////////////////LookupTable Information//////////////////////////////////
 	//Line1 : cardinality
 	//Line2 : Max Iteration
@@ -255,7 +256,7 @@ int main(int argc, char *argv[])
 	//Variable node Alignment Table
 	//Puncturing Alignment Table
 	sprintf(lutname, "LT-Chinn-T16-%s.txt", argv[1]);
-	std::cout<<"LUT: "<<lutname<<std::endl;
+	std::cout << "LUT: " << lutname << std::endl;
 	myfile = fopen(lutname, "r");
 	fscanf(myfile, "%d", &T);
 	fscanf(myfile, "%d", &max_iter);
@@ -264,9 +265,11 @@ int main(int argc, char *argv[])
 	check_lt = D4i(T, T, check_max - 2, max_iter);
 	ext_check_lt = D4i(T, T, check_max, max_iter);
 	vari_lt = D4i(T, T, vari_max, max_iter);
+	punc_alt = D2i(max_iter, T);
 	ext_vari_lt = D4i(T, T, vari_max, max_iter);
 	vari_msg_list = D1i(vari_max + 1);
 	check_msg_list = D1i(check_max);
+	////Check LT......
 	////Check LT......
 
 	for (index4 = 0; index4 < max_iter; index4++)
@@ -332,10 +335,20 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+	///Punc ALT....
+	for (index2 = 0; index2 < max_iter; index2++)
+	{
+		for (index1 = 0; index1 < T; index1++)
+		{
+			fscanf(myfile, "%d", &punc_alt[index2][index1]);
+			//printf("%d ", punc_alt[index2][index1]);
+		}
+		//printf("\n");
+	}
 	fclose(myfile);
-	std::cout<<"finished LUT reading...."<<std::endl;
+	std::cout << "finished LUT reading...." << std::endl;
 	////////Read Qunatization Information//////////////////////////////////////////
-	sprintf(quanname,"Channel_Quantization_%s.txt",argv[1]);
+	sprintf(quanname, "Channel_Quantization_%s.txt", argv[1]);
 	myfile = fopen(quanname, "r");
 	fscanf(myfile, "%d", &total_quan);
 	quan = D1i(total_quan);
@@ -345,7 +358,7 @@ int main(int argc, char *argv[])
 		//printf("%d \n", quan[index][i]);
 	}
 	fclose(myfile);
-	std::cout<<"finished Quantization Reading...."<<std::endl;
+	std::cout << "finished Quantization Reading...." << std::endl;
 	/////////Some Others///////////////////////////////////////////////////////////
 	timeseed = time(NULL) + 1000;
 	srand(timeseed);
@@ -377,11 +390,10 @@ int main(int argc, char *argv[])
 		sigma = (double)sqrt(sigma2);
 		//prepare file
 		sprintf(savee, "SimulationResult_R%.2f_D%s_I%s.txt", rate, argv[1], argv[4]);
-		sprintf(saveecode, "WrongCodeword_R%.2f_D%s_I%d.txt", rate, argv[1], timemod); // Codeword
-																								 //initial counting parameters
-		cor = 0;																				 // Number of correct
+		sprintf(saveecode, "WrongCodeword_R%.2f_D%s_I%d.txt", rate, argv[1], timemod); // Codeword																					   //initial counting parameters
+		cor = 0;																	   // Number of correct
 		wro = 0;
-		totalit = max_iter;				// Total iterations
+		totalit = max_iter;				  // Total iterations
 		sumiteration = 0;				  // Itertions when BER condition is satisfied
 		ndec = 0;						  // number of not decoded
 		iteration2 = 0;					  // total frame
@@ -422,7 +434,6 @@ int main(int argc, char *argv[])
 						cur_dv = lfindv[i]; // find the degree of this variable node
 						for (k = 0; k < cur_dv; k++)
 						{
-
 							for (int ii = 0; ii < vari_max + 1; ii++)
 							{
 								vari_msg_list[ii] = 0;
@@ -442,19 +453,41 @@ int main(int argc, char *argv[])
 									}
 								}
 							}
-							if (effect_deg != cur_dv - 1)
-							{
-								printf("wrong messages report: variable node doesn't collect enough messages...\n");
-							}
 							Fir = vari_msg_list[0];
+							// input message only contains channel information ---go directly to external table
+							// effective deg=1 --- go directly to exteranl table
+							// effective deg>1 --- first internal and final go external
+
 							for (int page = 0; page < effect_deg - 1; page++)
 							//there are totally effect_dege+1 numbers, so first (dffect_deg) use (dffect_deg-1) internal lookup tables
 							{
 								Sec = vari_msg_list[page + 1];
-								Fir = vari_lt[Fir - 1][Sec - 1][page][iteration - 2];
+								if (page == 0 && Fir == 0)
+								{
+									// variable node is punctured
+									Fir = punc_alt[iteration - 2][Sec - 1];
+								}
+								else
+								{
+									// Internal Lookup tables
+									Fir = vari_lt[Fir - 1][Sec - 1][page][iteration - 2];
+								}
 							}
 							Sec = vari_msg_list[effect_deg];
-							Fir = ext_vari_lt[Fir - 1][Sec - 1][effect_deg][iteration - 2];
+							if (effect_deg > 0)
+							{
+								if (Fir == 0)
+								{
+									printf("Process in deg 1 variable node --- with ");
+								}
+								Fir = ext_vari_lt[Fir - 1][Sec - 1][effect_deg][iteration - 2];
+							}
+							else
+							{
+								//effective deg == 0 means deg-1 varaible node
+								// means go through deg-1 message alignment table
+								Fir = ext_vari_lt[Fir - 1][Fir - 1][effect_deg][iteration - 2];
+							}
 							if (Fir == 0)
 							{
 								printf("wrong message report: vari wrong external table is used...\n");
@@ -485,80 +518,97 @@ int main(int argc, char *argv[])
 								if (msg_vari[findc[i][ii]] != 0)
 								{
 									check_msg_list[eff_check_deg] = msg_vari[findc[i][ii]];
-									//printf("%d %d", check_msg_list[eff_check_deg], msg_vari[findc[i][ii]]);
 									eff_check_deg = eff_check_deg + 1;
 								}
 							}
 						}
 						if (eff_check_deg != cur_dc - 1)
 						{
-							printf("wrong message report: don't collect enough check node messsages...\n");
+							//printf("wrong message report: don't collect enough check node messsages...\n");
+							//there are punctured varaible node!
+							//output a zero message
+							msg_chec[findc[i][k]] = 0;
 						}
-						//obtain outcoming messages
-						Fir = check_msg_list[0];
-						for (int page = 0; page < eff_check_deg - 2; page++)
+						else
 						{
-							Sec = check_msg_list[page + 1];
-							Fir = check_lt[Fir - 1][Sec - 1][page][iteration - 1];
-						}
-						Sec = check_msg_list[eff_check_deg - 1];
-						msg_chec[findc[i][k]] = ext_check_lt[Fir - 1][Sec - 1][eff_check_deg][iteration - 1];
-						if (msg_chec[findc[i][k]] == 0)
-						{
-							printf("wrong message report: vari wrong external table is used...\n");
+							//meaning all messages are "healthy"
+							Fir = check_msg_list[0];
+							for (int page = 0; page < eff_check_deg - 2; page++)
+							{
+								Sec = check_msg_list[page + 1];
+								Fir = check_lt[Fir - 1][Sec - 1][page][iteration - 1];
+							}
+							Sec = check_msg_list[eff_check_deg - 1];
+							//std::cout << "Fir: " << Fir << "Sec: " << Sec << std::endl;
+							msg_chec[findc[i][k]] = ext_check_lt[Fir - 1][Sec - 1][eff_check_deg ][iteration - 1];
+							if (msg_chec[findc[i][k]] == 0)
+							{
+								std::cout << eff_check_deg << "  " << std::endl;
+								printf("wrong message report: check wrong external table is used...\n");
+							}
 						}
 					}
 				}
+				std::cout<<"finished message passing..."<<iteration<<std::endl;
 				// check if all bits are correctly deocoded
 				//-----------Making Final Decisions------------------
-				for (i = 0; i < vari_num; i++)
-				{
-					//Initialize message list
-					for (int ii = 0; ii < vari_max + 1; ii++)
-					{
-						vari_msg_list[ii] = 0;
-					}
-					cur_dv = lfindv[i];
-					// collect messages
-					vari_msg_list[0] = rx_quan[i];
-					effect_deg = 0;
-					for (int ii = 0; ii < cur_dv; ii++)
-					{
-						if (msg_chec[findv[i][ii]] != 0)
-						{
-							vari_msg_list[effect_deg + 1] = msg_chec[findv[i][ii]];
-							effect_deg = effect_deg + 1;
-						}
-					}
-					if (effect_deg != cur_dv)
-					{
-						printf("wrong message report: final decision doesn't collect enough messages...\n");
-					}
-					// obtian final outputs using internal lookup table
-					Fir = vari_msg_list[0];
-					for (int page = 0; page < effect_deg; page++)
-					{
-						Sec = vari_msg_list[page + 1];
-						Fir = vari_lt[Fir - 1][Sec - 1][page][iteration - 1];
-					}
-					final_quan[i] = Fir;
-					//passing message for each neighbors
-					if (Fir == 0)
-					{
-						printf("wrong message 4.....bit decision message 0...%d th node\n", i);
-					}
-					if (Fir > int(T / 2))
-					{
-						final_bit[i] = 0;
-					}
-					else
-					{
-						final_bit[i] = 1;
-					}
-				}
+				               // check if all bits are correctly deocoded
+                // Final Decision
+                for (i = 0; i <vari_num; i++)
+                {
+                    //Initialize message list
+                    for (int ii = 0; ii < vari_max + 1;ii++)
+                    {
+                        vari_msg_list[ii] = 0;
+                    }
+                    cur_dv = lfindv[i];
+                    // collect messages
+                    vari_msg_list[0] = rx_quan[i];
+                    effect_deg = 0;
+                    for (int ii = 0;ii < cur_dv;ii++)
+                    {
+                        if (msg_chec[findv[i][ii]] != 0)
+                        {
+                            vari_msg_list[effect_deg + 1] = msg_chec[findv[i][ii]];
+                            effect_deg = effect_deg + 1;
+                        }
+                    }
+
+                    // obtian final outputs using internal lookup table
+                    Fir = vari_msg_list[0];
+                    for (int page = 0;page < effect_deg;page++)
+                    {
+                        Sec = vari_msg_list[page + 1];
+                        if (page == 0 && Fir == 0)
+                        {
+                            // variable node is punctured
+                            Fir = punc_alt[iteration - 1][Sec - 1];
+                        }
+                        else
+                        {
+                            // Internal Lookup tables
+                            Fir = vari_lt[Fir - 1][Sec - 1][page][iteration - 1];
+                        }
+                    }
+                    final_quan[i] = Fir;
+                    //passing message for each neighbors
+                    if (Fir == 0)
+                    {
+                        printf("wrong message 4.....bit decision message 0...%d th node\n", i);
+                    }
+                    if (Fir > int(T / 2))
+                    {
+                        final_bit[i] = 0;
+                    }
+                    else
+                    {
+                        final_bit[i] = 1;
+                    }
+                } 
+				std::cout<<"finished hard decoding..."<<iteration<<std::endl;
 				//-----------Parity check-----------------------------
 				parity_check_flag = 0;
-				for (i = 0; i < 258; i++) //devised for PBRL code 
+				/*for (i = 0; i < 258; i++) //devised for PBRL code
 				{
 					parity_check_sum = 0;
 					for (k = 0; k < lfindc[i]; k++)
@@ -572,12 +622,13 @@ int main(int argc, char *argv[])
 						break;
 					}
 				}
+				std::cout<<"finished parity check.."<<iteration<<std::endl;*/
 				//------Parity check passed check all zero codeword-------
 				if (parity_check_flag == 0)
 				{
 					flag = 0;
 					summ = 0;
-					for (i = 0; i < 1290; i++) //devised for PBRL code 
+					for (i = 0; i <(int) 1290; i++) //devised for PBRL code
 					{
 						if (final_bit[i] == 1)
 						{
@@ -592,7 +643,7 @@ int main(int argc, char *argv[])
 					}
 				}
 				//-----Final Iteration Check-----------------------------
-				if (iteration == totalit)
+				if (iteration == max_iter)
 				{
 					summ = 0;
 					for (i = 0; i < (int)1290; i++) //devised for PBRL code
@@ -626,7 +677,5 @@ int main(int argc, char *argv[])
 		fclose(pfile);
 		printf("finished %fdB ", esnodbvec[SNRit]);
 	}
-
-	system("pause");
 	return 0;
 }

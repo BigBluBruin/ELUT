@@ -310,7 +310,7 @@ int main(int argc, char* argv[])
     }
     fclose(myfile);
     ////////Read Qunatization Information//////////////////////////////////////////
-    sprintf(channel_info,"Channel_Quantization_%s_%s.txt",argv[1],argv[2])
+    sprintf(channel_info,"Channel_Quantization_%s_%s.txt",argv[1],argv[2]);
     myfile = fopen("Channel_Quantization.txt", "r");
     fscanf(myfile, "%d", &total_quan);
     fscanf(myfile, "%d", &snr_len);
@@ -443,7 +443,7 @@ int main(int argc, char* argv[])
                             {
                                 if (Fir==0)
                                 {
-                                    printf("Process in deg 1 variable node --- with ")
+                                    printf("Process in deg 1 variable node --- with ");
                                 }
                                 Fir = ext_vari_lt[Fir - 1][Sec - 1][effect_deg][iteration - 2];
                             }
