@@ -543,13 +543,13 @@ int main(int argc, char *argv[])
 							msg_chec[findc[i][k]] = ext_check_lt[Fir - 1][Sec - 1][eff_check_deg ][iteration - 1];
 							if (msg_chec[findc[i][k]] == 0)
 							{
-								std::cout << eff_check_deg << "  " << std::endl;
+								//std::cout << eff_check_deg << "  " << std::endl;
 								printf("wrong message report: check wrong external table is used...\n");
 							}
 						}
 					}
 				}
-				std::cout<<"finished message passing..."<<iteration<<std::endl;
+				//std::cout<<"finished message passing..."<<iteration<<std::endl;
 				// check if all bits are correctly deocoded
 				//-----------Making Final Decisions------------------
 				               // check if all bits are correctly deocoded
@@ -605,7 +605,7 @@ int main(int argc, char *argv[])
                         final_bit[i] = 1;
                     }
                 } 
-				std::cout<<"finished hard decoding..."<<iteration<<std::endl;
+				//std::cout<<"finished hard decoding..."<<iteration<<std::endl;
 				//-----------Parity check-----------------------------
 				parity_check_flag = 0;
 				/*for (i = 0; i < 258; i++) //devised for PBRL code
