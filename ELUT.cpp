@@ -389,7 +389,7 @@ int main(int argc, char *argv[])
 		sigma2 = (double)1.0 / (2 * rate * esno);
 		sigma = (double)sqrt(sigma2);
 		//prepare file
-		sprintf(savee, "SimulationResult_R%.2f_D%s_I%s.txt", rate, argv[1], argv[4]);
+		sprintf(savee, "SimulationResult_R%.2f_D%s_S%.2f_I%s.txt", rate, argv[1], esnodb,argv[4]);
 		sprintf(saveecode, "WrongCodeword_R%.2f_D%s_I%d.txt", rate, argv[1], timemod); // Codeword																					   //initial counting parameters
 		cor = 0;																	   // Number of correct
 		wro = 0;
